@@ -1,0 +1,5 @@
+Flask==1.1.2
+line-bot-sdk==1.19.0
+pytest-cov==2.11.1
+requests==2.25.1
+SQLAlchemy==1.4.2
