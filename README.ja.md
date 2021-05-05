@@ -2,6 +2,8 @@
 
 LINE Botを超高速開発するためのテンプレート🚀
 
+[🇬🇧English version is here](https://github.com/uezo/linebot-template/blob/main/README.md)
+
 # これは何？ 🤔
 
 これは以下3つの特徴を持つLINE Bot開発用の軽量プロジェクトテンプレートです。
@@ -56,11 +58,42 @@ $ ngrok http 12345
 
 # チャットボットの開発方法
 
-開発を進める前にアーキテクチャについてご説明しましょう。以下の図をご覧ください。
+開発を進める前にアーキテクチャ、特にイベント処理のフローについてご説明しましょう。以下の図をご覧ください。
 
-![linebot-template Architecture Overview](https://uezo.blob.core.windows.net/github/linebot-template/linebot-template-architecture.png)
+![linebot-template Architecture Overview](https://uezo.blob.core.windows.net/github/linebot-template/flow.ja.png)
 
 手短に言うと、チャットボット開発のために必要な作業は`YourBot.extract_intent`と`YourSkill(s).process_request`を実装することです。他の汎用的な機能はテンプレート側で実装済みです。
+
+- `extract_intent`は`Request`、`User`、`Context`を引数として受け取ります。LINE APIからの`Event`オブジェクトには`request.event`を通じてアクセスすることができます。インテントが抽出された場合には、インテントは`str`、エンティティは`dict`でそれぞれリターンしてください。
+
+```python
+def extract_intent(self, request, user, context):
+    if request.event.messages == "***":
+        # インテントとエンティティを抽出した場合
+        return "***", {"key1": "val1", "key2", "val2"}
+    elif ... :
+        # インテントのみを抽出した場合
+        return "***"
+```
+
+- `process_request`も同様に`Request`、`User`、`Context`を引数として受け取ります。ビジネスロジックを処理し、LINE APIに応答したい`Message`のリストを作成したら、これを`Response`オブジェクトにセットしてリターンしてください。なお`Response`オブジェクトの生成を省略して以下の型でリターンすることもできます。
+
+    - `str`
+    - `Message`
+    - `str`の`list`
+    - `Message`と`str`からなるリスト
+
+```python
+def process_request(self, request, user, context):
+    text = do_something()
+    message = TextSendMessage(text=text)
+    return Response(messages=[message])
+    # 👇 以下もOK
+    # return text
+    # return message
+    # return [text]
+    # return [message]
+```
 
 ## おうむ返しBot
 

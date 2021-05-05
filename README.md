@@ -2,6 +2,8 @@
 
 A template to build LINE Bot extremely fast🚀
 
+[🇯🇵日本語版はこちら](https://github.com/uezo/linebot-template/blob/main/README.ja.md)
+
 # What's this? 🤔
 
 This is a tiny LINE Bot project template with these features below:
@@ -49,18 +51,49 @@ I have one more thing to introduce to you. Access http://localhost:12345/admin/m
 
 (image)
 
-Click timestamp to see detail information that must be useful to debug your bot.
+Click timestamp to see detail information that must be useful for debugging.
 
 (image)
 
 
 # Building your chatbot
 
-Before start building you may want to know the architecture of this template, don't you? Okay, see the diagram below.
+Before start building you may want to know the architecture of this template, especially event processing flow don't you? Okay, see the diagram below.
 
-![linebot-template Architecture Overview](https://uezo.blob.core.windows.net/github/linebot-template/linebot-template-architecture.png)
+![linebot-template Event Processing Flow Diagram](https://uezo.blob.core.windows.net/github/linebot-template/flow.png)
 
 In short, just implementing `YourBot.extract_intent` and `YourSkill(s).process_request` are needed to create your chatbot. Any other common features are ready as out of the box.
+
+- `extract_intent` takes `Request`, `User` and `Context`. You can get `Event` object from LINE API as `request.event`. Return intent as `str` and entities as `dict` if they are extracted.
+
+```python
+def extract_intent(self, request, user, context):
+    if request.event.messages == "***":
+        # intent and entities are extracted
+        return "***", {"key1": "val1", "key2", "val2"}
+    elif ... :
+        # only intent is extracted
+        return "***"
+```
+
+- `process_request` also takes `Request`, `User` and `Context`. Process business logic, compose list of `Message` object to LINE API and return `Response` object with these messages. You can also return:
+    - `str`
+    - `Message`
+    - `list` of `str`
+    - `list` of `Message` and `str`
+
+```python
+def process_request(self, request, user, context):
+    text = do_something()
+    message = TextSendMessage(text=text)
+    return Response(messages=[message])
+    # 👇 also valid
+    # return text
+    # return message
+    # return [text]
+    # return [message]
+```
+
 
 ## Echo bot
 
