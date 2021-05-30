@@ -1,4 +1,5 @@
 from ...bot import BotBase
+from ...models import HistoryVerbosity
 from .models import LineRequest, LineResponse
 
 
@@ -8,10 +9,12 @@ class LineBotBase(BotBase):
 
     def __init__(self, *, line_api, line_parser,
                  db_session_maker=None, logger=None,
-                 threads=None, state_timeout=300):
+                 threads=None, state_timeout=300,
+                 history_verbosity=HistoryVerbosity.All):
         super().__init__(
             db_session_maker=db_session_maker, logger=logger,
-            threads=threads, state_timeout=state_timeout
+            threads=threads, state_timeout=state_timeout,
+            history_verbosity=history_verbosity
         )
         self.line_api = line_api
         self.line_parser = line_parser
