@@ -10,12 +10,12 @@ class DummyBot:
 class HelloSkill(SkillBase):
     topic = "Hello"
 
-    def process_request(self, request, user, context):
+    def process_request(self, request, user, state):
         return "Hello"
 
 
 class NoTopicSkill(SkillBase):
-    def process_request(self, request, user, context):
+    def process_request(self, request, user, state):
         pass
 
 

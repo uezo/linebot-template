@@ -17,8 +17,8 @@ def get_uuid():
     return str(uuid4())
 
 
-class Context(Base):
-    __tablename__ = "contexts"
+class State(Base):
+    __tablename__ = "states"
     id = Column("id", NVARCHAR(255), default=get_uuid, primary_key=True)
     updated_at = Column("updated_at", DateTime, default=datetime.utcnow,
                         onupdate=datetime.utcnow)
@@ -174,8 +174,8 @@ class MessageLog(Base):
     __response = Column("response", NVARCHAR())
     intent = Column("intent", NVARCHAR(255))
     __entities = Column("entities", NVARCHAR())
-    __context_on_start = Column("context_on_start", NVARCHAR())
-    __context_on_end = Column("context_on_end", NVARCHAR())
+    __state_on_start = Column("state_on_start", NVARCHAR())
+    __state_on_end = Column("state_on_end", NVARCHAR())
     __user_on_start = Column("user_on_start", NVARCHAR())
     __user_on_end = Column("user_on_end", NVARCHAR())
     error = Column("error", NVARCHAR())
@@ -210,20 +210,20 @@ class MessageLog(Base):
         self.__entities = json.dumps(value)
 
     @property
-    def context_on_start(self):
-        return self.__context_on_start
+    def state_on_start(self):
+        return self.__state_on_start
 
-    @context_on_start.setter
-    def context_on_start(self, value):
-        self.__context_on_start = value.to_json()
+    @state_on_start.setter
+    def state_on_start(self, value):
+        self.__state_on_start = value.to_json()
 
     @property
-    def context_on_end(self):
-        return self.__context_on_end
+    def state_on_end(self):
+        return self.__state_on_end
 
-    @context_on_end.setter
-    def context_on_end(self, value):
-        self.__context_on_end = value.to_json()
+    @state_on_end.setter
+    def state_on_end(self, value):
+        self.__state_on_end = value.to_json()
 
     @property
     def user_on_start(self):

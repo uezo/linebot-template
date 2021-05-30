@@ -64,10 +64,10 @@ $ ngrok http 12345
 
 手短に言うと、チャットボット開発のために必要な作業は`YourBot.extract_intent`と`YourSkill(s).process_request`を実装することです。他の汎用的な機能はテンプレート側で実装済みです。
 
-- `extract_intent`は`Request`、`User`、`Context`を引数として受け取ります。LINE APIからの`Event`オブジェクトには`request.event`を通じてアクセスすることができます。インテントが抽出された場合には、インテントは`str`、エンティティは`dict`でそれぞれリターンしてください。
+- `extract_intent`は`Request`、`User`、`State`を引数として受け取ります。LINE APIからの`Event`オブジェクトには`request.event`を通じてアクセスすることができます。インテントが抽出された場合には、インテントは`str`、エンティティは`dict`でそれぞれリターンしてください。
 
 ```python
-def extract_intent(self, request, user, context):
+def extract_intent(self, request, user, state):
     if request.event.messages == "***":
         # インテントとエンティティを抽出した場合
         return "***", {"key1": "val1", "key2", "val2"}
@@ -76,7 +76,7 @@ def extract_intent(self, request, user, context):
         return "***"
 ```
 
-- `process_request`も同様に`Request`、`User`、`Context`を引数として受け取ります。ビジネスロジックを処理し、LINE APIに応答したい`Message`のリストを作成したら、これを`Response`オブジェクトにセットしてリターンしてください。なお`Response`オブジェクトの生成を省略して以下の型でリターンすることもできます。
+- `process_request`も同様に`Request`、`User`、`State`を引数として受け取ります。ビジネスロジックを処理し、LINE APIに応答したい`Message`のリストを作成したら、これを`Response`オブジェクトにセットしてリターンしてください。なお`Response`オブジェクトの生成を省略して以下の型でリターンすることもできます。
 
     - `str`
     - `Message`
@@ -84,7 +84,7 @@ def extract_intent(self, request, user, context):
     - `Message`と`str`からなるリスト
 
 ```python
-def process_request(self, request, user, context):
+def process_request(self, request, user, state):
     text = do_something()
     message = TextSendMessage(text=text)
     return Response(messages=[message])
@@ -107,7 +107,7 @@ class EchoSkill(SkillBase):
     # このスキルのトピック名称
     topic = "Echo"
 
-    def process_request(self, request, user, context):
+    def process_request(self, request, user, state):
         # ユーザーの発話内容をそのまま返却
         return request.event.message.text
 
@@ -115,7 +115,7 @@ class EchoBot(LineBotBase):
     # このボットで利用するスキルの登録
     skills = [EchoSkill]
 
-    def extract_intent(self, request, user, context):
+    def extract_intent(self, request, user, state):
         # 常におうむ返しインテントと判定
         return EchoSkill.topic
 ```
@@ -133,10 +133,10 @@ from avril.channels.line import LineBotBase, LineResponse
 class MultiTurnEchoSkill(SkillBase):
     topic = "MultiTurnEcho"
 
-    def process_request(self, request, user, context):
+    def process_request(self, request, user, state):
         current_text = request.event.message.text
-        last_text = context.data.get("last_text")
-        context.data["last_text"] = current_text
+        last_text = state.data.get("last_text")
+        state.data["last_text"] = current_text
 
         message = f"今回の発話: {current_text}"
         if last_text:
@@ -150,8 +150,8 @@ class MultiTurnEchoSkill(SkillBase):
 class MultiTurnEchoBot(LineBotBase):
     skills = [MultiTurnEchoSkill]
 
-    def extract_intent(self, request, user, context):
-        if not context.topic:   # 👈 ターン継続中はインテントを判定しないように条件を追加
+    def extract_intent(self, request, user, state):
+        if not state.topic:   # 👈 ターン継続中はインテントを判定しないように条件を追加
             return MultiTurnEchoSkill.topic
 ```
 
@@ -183,13 +183,13 @@ class MultiTurnEchoBot(LineBotBase):
 ```python
 class MyMessageLog(MessageLog):
     @property
-    def context_on_start(self):
-        super().context_on_start()
+    def state_on_start(self):
+        super().state_on_start()
 
     # override not to set serialized value
-    @context_on_start.setter
-    def context_on_start(self, value):
-        self.__context_on_start = None
+    @state_on_start.setter
+    def state_on_start(self, value):
+        self.__state_on_start = None
 
 class MyBot(LineBotBase):
     # Use custom message log class

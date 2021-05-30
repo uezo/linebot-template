@@ -8,10 +8,10 @@ class LineBotBase(BotBase):
 
     def __init__(self, *, line_api, line_parser,
                  db_session_maker=None, logger=None,
-                 threads=None, context_timeout=300):
+                 threads=None, state_timeout=300):
         super().__init__(
             db_session_maker=db_session_maker, logger=logger,
-            threads=threads, context_timeout=context_timeout
+            threads=threads, state_timeout=state_timeout
         )
         self.line_api = line_api
         self.line_parser = line_parser
@@ -33,7 +33,7 @@ class LineBotBase(BotBase):
 
         return user
 
-    def process_response(self, request, user, context, response):
+    def process_response(self, request, user, state, response):
         # send response to user
         if response.messages:
             self.line_api.reply_message(

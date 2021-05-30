@@ -6,7 +6,7 @@ import pytest
 from sqlalchemy import desc
 from avril import BotBase, SkillBase
 from avril.models import (
-    Context, MessageLog, Request, Response, create_all
+    State, MessageLog, Request, Response, create_all
 )
 from database import Database
 
@@ -28,14 +28,14 @@ def bot():
     return BotForTest(
         db_session_maker=Database(
             config["DATABASE"]["connection_string"]).session,
-        context_timeout=5
+        state_timeout=5
     )
 
 
 class ResponseTypeSkill(SkillBase):
     topic = "ResponseType"
 
-    def process_request(self, request, user, context):
+    def process_request(self, request, user, state):
         req = request.event["text"]
 
         if "text" in req:
@@ -48,11 +48,11 @@ class ResponseTypeSkill(SkillBase):
 class MultiTurnSkill(SkillBase):
     topic = "MultiTurn"
 
-    def process_request(self, request, user, context):
+    def process_request(self, request, user, state):
         req = request.event["text"]
 
         if request.intent == self.topic:
-            context.data["count"] = 1
+            state.data["count"] = 1
             user.data["myid"] = user.id
             return Response(
                 messages="first turn",
@@ -65,11 +65,11 @@ class MultiTurnSkill(SkillBase):
         elif "err" in req:
             raise Exception("error occured in process_request")
 
-        elif not context.data.get("count") is None:
-            context.data["count"] += 1
-            # raise Exception("count=" + str(context.data["count"]))
+        elif not state.data.get("count") is None:
+            state.data["count"] += 1
+            # raise Exception("count=" + str(state.data["count"]))
             return Response(
-                messages=f"turn {context.data['count']}",
+                messages=f"turn {state.data['count']}",
                 end_session=False
             )
 
@@ -77,22 +77,22 @@ class MultiTurnSkill(SkillBase):
 class ErrorCaseSkill(SkillBase):
     topic = "ErrorCase"
 
-    def process_request(self, request, user, context):
+    def process_request(self, request, user, state):
         req = request.event["text"]
 
         if "skill" in req:
             raise Exception("Error in skill")
 
-        elif "invalid_context" in req:
-            context.data["context_status"] = "invalid"
-            context.serialize_data = None
+        elif "invalid_state" in req:
+            state.data["state_status"] = "invalid"
+            state.serialize_data = None
             return Response(
-                messages="context invalidated",
+                messages="state invalidated",
                 end_session=False
             )
 
         else:
-            context.data["context_status"] = "valid"
+            state.data["state_status"] = "valid"
             return Response(
                 messages="No errors",
                 end_session=False
@@ -106,10 +106,10 @@ class BotForTest(BotBase):
         super().__init__(**kwargs)
         self.response_buffer = []
 
-    def process_response(self, request, user, context, response):
+    def process_response(self, request, user, state, response):
         self.response_buffer.append(response)
 
-    def extract_intent(self, request, user, context):
+    def extract_intent(self, request, user, state):
         req = request.event["text"]
 
         if req.startswith("multi_turn"):
@@ -123,10 +123,10 @@ class BotForTest(BotBase):
 
 
 class TestBotBase:
-    def get_context(self, bot, source_id):
+    def get_state(self, bot, source_id):
         db = bot.db_session()
         try:
-            return bot.get_context(db, Request(source_id=source_id))
+            return bot.get_state(db, Request(source_id=source_id))
         finally:
             db.close()
 
@@ -139,7 +139,7 @@ class TestBotBase:
         finally:
             db.close()
 
-    def test_get_context_separated_by_users(self, bot):
+    def test_get_state_separated_by_users(self, bot):
         db = bot.db_session()
 
         try:
@@ -147,57 +147,57 @@ class TestBotBase:
             user_1 = str(uuid4())
             user_2 = str(uuid4())
 
-            # get and update each contexts
-            context_1 = bot.get_context(db, Request(source_id=user_1))
-            assert context_1.data == {}
-            context_1.data["data"] = "for user 1"
-            context_1.serialize_data()
+            # get and update each states
+            state_1 = bot.get_state(db, Request(source_id=user_1))
+            assert state_1.data == {}
+            state_1.data["data"] = "for user 1"
+            state_1.serialize_data()
 
-            context_2 = bot.get_context(db, Request(source_id=user_2))
-            assert context_2.data == {}
-            context_2.data["data"] = "for user 2"
-            context_2.serialize_data()
+            state_2 = bot.get_state(db, Request(source_id=user_2))
+            assert state_2.data == {}
+            state_2.data["data"] = "for user 2"
+            state_2.serialize_data()
             db.commit()
 
             # wait for 2 seconds (within timeout)
             sleep(2)
-            context_1 = bot.get_context(db, Request(source_id=user_1))
-            assert context_1.data["data"] == "for user 1"
-            context_2 = bot.get_context(db, Request(source_id=user_2))
-            assert context_2.data["data"] == "for user 2"
+            state_1 = bot.get_state(db, Request(source_id=user_1))
+            assert state_1.data["data"] == "for user 1"
+            state_2 = bot.get_state(db, Request(source_id=user_2))
+            assert state_2.data["data"] == "for user 2"
 
         finally:
             db.close()
 
-    def test_get_context_timeout(self, bot):
+    def test_get_state_timeout(self, bot):
         db = bot.db_session()
 
         try:
             # set user ids
             user_1 = str(uuid4())
 
-            # get context of user1
-            context = bot.get_context(db, Request(source_id=user_1))
-            assert context.data == {}
+            # get state of user1
+            state = bot.get_state(db, Request(source_id=user_1))
+            assert state.data == {}
 
-            # update context
+            # update state
             new_data = str(uuid4())
-            context.topic = "timeout_test"
-            context.data["uuid"] = new_data
-            context.serialize_data()
+            state.topic = "timeout_test"
+            state.data["uuid"] = new_data
+            state.serialize_data()
             db.commit()
 
             # wait for 2 seconds (within timeout), data is alive
             sleep(2)
-            context = bot.get_context(db, Request(source_id=user_1))
-            assert context.topic == "timeout_test"
-            assert context.data["uuid"] == new_data
+            state = bot.get_state(db, Request(source_id=user_1))
+            assert state.topic == "timeout_test"
+            assert state.data["uuid"] == new_data
 
             # wait for 7 seconds (over timeout), data is cleared
             sleep(7)
-            context = bot.get_context(db, Request(source_id=user_1))
-            assert context.topic is None
-            assert context.data == {}
+            state = bot.get_state(db, Request(source_id=user_1))
+            assert state.topic is None
+            assert state.data == {}
 
         finally:
             db.close()
@@ -253,7 +253,7 @@ class TestBotBase:
         # confirm that skill is available in bot
         skill = noskill_bot.route(
             Request(intent=ResponseTypeSkill.topic),
-            None, Context()
+            None, State()
         )
         assert isinstance(skill, ResponseTypeSkill)
 
@@ -303,9 +303,9 @@ class TestBotBase:
         }])
         assert len(bot.response_buffer) == 1
         assert bot.response_buffer[0].messages[0] == "No errors"
-        context = self.get_context(bot, user_id)
-        assert context.topic == ErrorCaseSkill.topic
-        assert context.data["context_status"] == "valid"
+        state = self.get_state(bot, user_id)
+        assert state.topic == ErrorCaseSkill.topic
+        assert state.data["state_status"] == "valid"
         message_log = self.get_last_messagelog(bot, user_id)
         assert message_log.error is None
 
@@ -316,9 +316,9 @@ class TestBotBase:
             "source_id": user_id
         }])
         assert len(bot.response_buffer) == 0
-        context = self.get_context(bot, user_id)
-        assert context.topic is None
-        assert context.data == {}
+        state = self.get_state(bot, user_id)
+        assert state.topic is None
+        assert state.data == {}
         message_log = self.get_last_messagelog(bot, user_id)
         assert json.loads(message_log.error)["message"] == "Error in skill"
 
@@ -330,9 +330,9 @@ class TestBotBase:
         }])
         assert len(bot.response_buffer) == 1
         assert bot.response_buffer[0].messages[0] == "No errors"
-        context = self.get_context(bot, user_id)
-        assert context.topic == ErrorCaseSkill.topic
-        assert context.data["context_status"] == "valid"
+        state = self.get_state(bot, user_id)
+        assert state.topic == ErrorCaseSkill.topic
+        assert state.data["state_status"] == "valid"
         message_log = self.get_last_messagelog(bot, user_id)
         assert message_log.error is None
 
@@ -344,9 +344,9 @@ class TestBotBase:
             "source_id": user_id
         }])
         assert len(bot.response_buffer) == 0
-        context = self.get_context(bot, user_id)
-        assert context.topic is None
-        assert context.data == {}
+        state = self.get_state(bot, user_id)
+        assert state.topic is None
+        assert state.data == {}
         message_log = self.get_last_messagelog(bot, user_id)
         assert json.loads(message_log.error)["message"] ==\
             "'NoneType' object is not callable"
@@ -451,50 +451,50 @@ class TestBotBase:
 
             for i, ml in enumerate(message_logs):
                 assert ml.request["event"]["text"] == messages[i]
-                context_on_start = json.loads(ml.context_on_start)["data"]
-                context_on_end = json.loads(ml.context_on_end)["data"]
+                state_on_start = json.loads(ml.state_on_start)["data"]
+                state_on_end = json.loads(ml.state_on_end)["data"]
                 user_on_start = json.loads(ml.user_on_start)["data"]
                 user_on_end = json.loads(ml.user_on_end)["data"]
 
                 if i == 0:
-                    assert context_on_start == {}
-                    assert context_on_end == {"count": 1}
+                    assert state_on_start == {}
+                    assert state_on_end == {"count": 1}
                     assert user_on_start == {}
                     assert user_on_end == {"myid": user_id}
 
                 elif i == 1:
-                    assert context_on_start == {"count": 1}
-                    assert context_on_end == {"count": 2}
+                    assert state_on_start == {"count": 1}
+                    assert state_on_end == {"count": 2}
                     assert user_on_start == {"myid": user_id}
                     assert user_on_end == {"myid": user_id}
 
                 elif i == 2:
-                    assert context_on_start == {"count": 2}
-                    assert context_on_end == {"count": 3}
+                    assert state_on_start == {"count": 2}
+                    assert state_on_end == {"count": 3}
                     assert user_on_start == {"myid": user_id}
                     assert user_on_end == {"myid": user_id}
 
                 elif i == 3:
-                    assert context_on_start == {"count": 3}
-                    assert context_on_end == {}
+                    assert state_on_start == {"count": 3}
+                    assert state_on_end == {}
                     assert user_on_start == {"myid": user_id}
                     assert user_on_end == {"myid": user_id}
 
                 elif i == 4:
-                    assert context_on_start == {}
-                    assert context_on_end == {"count": 1}
+                    assert state_on_start == {}
+                    assert state_on_end == {"count": 1}
                     assert user_on_start == {"myid": user_id}
                     assert user_on_end == {"myid": user_id}
 
                 elif i == 5:
-                    assert context_on_start == {"count": 1}
-                    assert context_on_end == {"count": 2}
+                    assert state_on_start == {"count": 1}
+                    assert state_on_end == {"count": 2}
                     assert user_on_start == {"myid": user_id}
                     assert user_on_end == {"myid": user_id}
 
                 elif i == 6:
-                    assert context_on_start == {"count": 2}
-                    assert context_on_end == {}
+                    assert state_on_start == {"count": 2}
+                    assert state_on_end == {}
                     assert user_on_start == {"myid": user_id}
                     assert user_on_end == {"myid": user_id}
                     assert json.loads(ml.error)["message"] == \
@@ -506,13 +506,13 @@ class TestBotBase:
     def test_process_events_custom_messagelog(self, bot):
         class MyMessageLog(MessageLog):
             @property
-            def context_on_start(self):
-                super().context_on_start()
+            def state_on_start(self):
+                super().state_on_start()
 
             # override not to set serialized value
-            @context_on_start.setter
-            def context_on_start(self, value):
-                self.__context_on_start = None
+            @state_on_start.setter
+            def state_on_start(self, value):
+                self.__state_on_start = None
 
         user_id = str(uuid4())
         db = bot.db_session()
@@ -521,17 +521,17 @@ class TestBotBase:
             message_log = db.query(MessageLog).\
                 filter(MessageLog.source_id == user_id).\
                 order_by(desc(MessageLog.updated_at)).first()
-            # confirm that context_on_start is saved
-            assert json.loads(message_log.context_on_start)["id"] == user_id
+            # confirm that state_on_start is saved
+            assert json.loads(message_log.state_on_start)["id"] == user_id
 
-            # change message log class to mute context_on_start
+            # change message log class to mute state_on_start
             bot.message_log_class = MyMessageLog
             bot.process_events([{"text": "ml test", "source_id": user_id}])
             my_message_log = db.query(MessageLog).\
                 filter(MessageLog.source_id == user_id).\
                 order_by(desc(MessageLog.updated_at)).first()
-            # confirm that context_on_start is not saved
-            assert my_message_log.context_on_start is None
+            # confirm that state_on_start is not saved
+            assert my_message_log.state_on_start is None
 
         finally:
             db.close()

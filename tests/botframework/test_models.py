@@ -1,52 +1,52 @@
 from datetime import datetime
 from uuid import uuid4
 import json
-from avril.models import Context, User, Request, Response, MessageLog
+from avril.models import State, User, Request, Response, MessageLog
 
 
-class TestContext:
+class TestState:
     def test_init(self):
-        context_id = str(uuid4())
+        state_id = str(uuid4())
 
-        context = Context(id=context_id)
-        assert context.id == context_id
-        assert context.updated_at is None
+        state = State(id=state_id)
+        assert state.id == state_id
+        assert state.updated_at is None
 
-        context_serialized_data_none = Context(id=context_id)
-        assert context_serialized_data_none.serialized_data is None
-        assert context_serialized_data_none.data == {}
+        state_serialized_data_none = State(id=state_id)
+        assert state_serialized_data_none.serialized_data is None
+        assert state_serialized_data_none.data == {}
 
-        context_serialized_data_str = Context(id=context_id)
-        assert context_serialized_data_str.serialized_data is None
-        context_serialized_data_str.serialized_data = '{"key1": "val1"}'
-        assert context_serialized_data_str.data == {"key1": "val1"}
+        state_serialized_data_str = State(id=state_id)
+        assert state_serialized_data_str.serialized_data is None
+        state_serialized_data_str.serialized_data = '{"key1": "val1"}'
+        assert state_serialized_data_str.data == {"key1": "val1"}
 
-        context_data_dict = Context(id=context_id)
-        assert context_data_dict.serialized_data is None
-        context_data_dict.data = {"key1": "val1"}
-        assert context_data_dict.serialized_data == '{"key1": "val1"}'
-        assert context_data_dict.data == {"key1": "val1"}
+        state_data_dict = State(id=state_id)
+        assert state_data_dict.serialized_data is None
+        state_data_dict.data = {"key1": "val1"}
+        assert state_data_dict.serialized_data == '{"key1": "val1"}'
+        assert state_data_dict.data == {"key1": "val1"}
 
     def test_to_dict(self):
-        context_id = str(uuid4())
+        state_id = str(uuid4())
 
-        context_data_to_dict = Context(id=context_id)
-        context_data_to_dict.topic = "test_topic"
-        context_data_to_dict.data = {"key1": "val1"}
-        d = context_data_to_dict.to_dict()
-        assert d["id"] == context_id
+        state_data_to_dict = State(id=state_id)
+        state_data_to_dict.topic = "test_topic"
+        state_data_to_dict.data = {"key1": "val1"}
+        d = state_data_to_dict.to_dict()
+        assert d["id"] == state_id
         assert d["updated_at"] is not None
         assert d["topic"] == "test_topic"
         assert d["data"] == {"key1": "val1"}
 
     def test_to_json(self):
-        context_id = str(uuid4())
+        state_id = str(uuid4())
 
-        context_data_to_json = Context(id=context_id)
-        context_data_to_json.topic = "test_topic"
-        context_data_to_json.data = {"key1": "val1"}
-        d = json.loads(context_data_to_json.to_json())
-        assert d["id"] == context_id
+        state_data_to_json = State(id=state_id)
+        state_data_to_json.topic = "test_topic"
+        state_data_to_json.data = {"key1": "val1"}
+        d = json.loads(state_data_to_json.to_json())
+        assert d["id"] == state_id
         assert d["updated_at"] is not None
         assert d["topic"] == "test_topic"
         assert d["data"] == {"key1": "val1"}
@@ -249,8 +249,8 @@ class TestMessageLog:
         # properties
         assert message_log.request is None
         assert message_log.response is None
-        assert message_log.context_on_start is None
-        assert message_log.context_on_end is None
+        assert message_log.state_on_start is None
+        assert message_log.state_on_end is None
         assert message_log.user_on_start is None
         assert message_log.user_on_end is None
 
@@ -282,28 +282,28 @@ class TestMessageLog:
         assert message_log.response["messages"] == response.messages
         assert message_log.response["end_session"] == response.end_session
 
-        # create context
-        context = Context(
+        # create state
+        state = State(
             id=str(uuid4()),
             data={"key1": "value1", "key2": "value2"}
         )
-        message_log.context_on_start = context
-        assert isinstance(message_log.context_on_start, str)
-        d = json.loads(message_log.context_on_start)
-        assert d["id"] == context.id
-        assert d["data"] == context.data
+        message_log.state_on_start = state
+        assert isinstance(message_log.state_on_start, str)
+        d = json.loads(message_log.state_on_start)
+        assert d["id"] == state.id
+        assert d["data"] == state.data
 
-        # update context and set on_end
-        context.data["key1"] = "value1 update"
-        context.data["key3"] = "value3"
-        message_log.context_on_end = context
+        # update state and set on_end
+        state.data["key1"] = "value1 update"
+        state.data["key3"] = "value3"
+        message_log.state_on_end = state
 
         # confirm on_start is not updated and on_end is updated
-        d_start = json.loads(message_log.context_on_start)
-        assert d_start["id"] == context.id
+        d_start = json.loads(message_log.state_on_start)
+        assert d_start["id"] == state.id
         assert d_start["data"] == {"key1": "value1", "key2": "value2"}
-        d_end = json.loads(message_log.context_on_end)
-        assert d_end["id"] == context.id
+        d_end = json.loads(message_log.state_on_end)
+        assert d_end["id"] == state.id
         assert d_end["data"] == {
             "key1": "value1 update", "key2": "value2", "key3": "value3"
         }
@@ -319,7 +319,7 @@ class TestMessageLog:
         assert d["id"] == user.id
         assert d["data"] == user.data
 
-        # update context and set on_end
+        # update state and set on_end
         user.data["key1"] = "value1 update"
         user.data["key3"] = "value3"
         message_log.user_on_end = user

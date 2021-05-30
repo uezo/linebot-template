@@ -6,7 +6,7 @@ class EchoSkill(SkillBase):
     # configure topic name of this skill
     topic = "Echo"
 
-    def process_request(self, request, user, context):
+    def process_request(self, request, user, state):
         # return what user said
         return request.event.message.text
 
@@ -15,7 +15,7 @@ class EchoBot(LineBotBase):
     # register skills that will be used in this bot
     skills = [EchoSkill]
 
-    def extract_intent(self, request, user, context):
+    def extract_intent(self, request, user, state):
         # trigger EchoSkill everytime
         return EchoSkill.topic
 
@@ -23,10 +23,10 @@ class EchoBot(LineBotBase):
 class MultiTurnEchoSkill(SkillBase):
     topic = "MultiTurnEcho"
 
-    def process_request(self, request, user, context):
+    def process_request(self, request, user, state):
         current_text = request.event.message.text
-        last_text = context.data.get("last_text")
-        context.data["last_text"] = current_text
+        last_text = state.data.get("last_text")
+        state.data["last_text"] = current_text
 
         message = f"今回の発話：{current_text}"
         if last_text:
@@ -41,6 +41,6 @@ class MultiTurnEchoSkill(SkillBase):
 class MultiTurnEchoBot(LineBotBase):
     skills = [MultiTurnEchoSkill]
 
-    def extract_intent(self, request, user, context):
-        if not context.topic:
+    def extract_intent(self, request, user, state):
+        if not state.topic:
             return MultiTurnEchoSkill.topic

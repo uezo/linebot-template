@@ -11,5 +11,5 @@ class SkillBase(ABC):
         self.logger = bot.logger
 
     @abstractmethod
-    def process_request(self, request, user, context):
+    def process_request(self, request, user, state):
         pass

@@ -5,7 +5,7 @@ import json
 from logging import getLogger
 from time import time
 import traceback
-from .models import Context, MessageLog, User, Request, Response
+from .models import State, MessageLog, User, Request, Response
 
 
 class BotBase(ABC):
@@ -15,13 +15,13 @@ class BotBase(ABC):
     message_log_class = MessageLog
 
     def __init__(self, *, db_session_maker=None, logger=None,
-                 threads=None, context_timeout=300):
+                 threads=None, state_timeout=300):
         self.db_session = db_session_maker
         self.logger = logger or getLogger(__name__)
         self.executor = ThreadPoolExecutor(
             max_workers=threads, thread_name_prefix="LineEvent"
         )
-        self.context_timeout = context_timeout
+        self.state_timeout = state_timeout
         self.__skills = {s.topic: s for s in self.skills}
         if len(self.__skills) == 0:
             self.logger.warning("No skills has been registered yet.")
@@ -30,21 +30,21 @@ class BotBase(ABC):
         self.skills.append(skill)
         self.__skills[skill.topic] = skill
 
-    def get_context(self, db, request):
-        # get or create context
-        context = db.query(Context).\
-            filter(Context.id == request.source_id).first()
+    def get_state(self, db, request):
+        # get or create state
+        state = db.query(State).\
+            filter(State.id == request.source_id).first()
 
-        if not context:
-            context = Context(id=request.source_id, data={})
-            db.add(context)
+        if not state:
+            state = State(id=request.source_id, data={})
+            db.add(state)
             db.flush()
         else:
-            gap = datetime.utcnow() - context.updated_at
-            if gap.total_seconds() > self.context_timeout:
-                context.clear()
+            gap = datetime.utcnow() - state.updated_at
+            if gap.total_seconds() > self.state_timeout:
+                state.clear()
 
-        return context
+        return state
 
     def get_user(self, db, request, update_profile=True):
         # get or create user
@@ -59,22 +59,22 @@ class BotBase(ABC):
         return user
 
     @abstractmethod
-    def extract_intent(self, request, user, context):
+    def extract_intent(self, request, user, state):
         pass
 
-    def route(self, request, user, context):
+    def route(self, request, user, state):
         if request.intent in self.__skills:
             # set topic to start skill match to intent
             skill = self.__skills[request.intent]
-            context.clear()
-            context.topic = skill.topic
+            state.clear()
+            state.topic = skill.topic
 
-        if context.topic in self.__skills:
+        if state.topic in self.__skills:
             # start or continue skill match to topic
-            return self.__skills[context.topic](self)
+            return self.__skills[state.topic](self)
 
     @abstractmethod
-    def process_response(self, request, user, context, response):
+    def process_response(self, request, user, state, response):
         pass
 
     def process_events(self, events):
@@ -90,7 +90,7 @@ class BotBase(ABC):
         for event in events:
             start_time = time()
             message_log = self.message_log_class()
-            context = None
+            state = None
             user = None
 
             try:
@@ -98,16 +98,16 @@ class BotBase(ABC):
                 request = self.request_class.from_event(event)
                 message_log.request = request
 
-                # get context
-                context = self.get_context(db, request)
-                message_log.context_on_start = context
+                # get state
+                state = self.get_state(db, request)
+                message_log.state_on_start = state
 
                 # get user
                 user = self.get_user(db, request)
                 message_log.user_on_start = user
 
                 # extract intent
-                intent_entities = self.extract_intent(request, user, context)
+                intent_entities = self.extract_intent(request, user, state)
                 if isinstance(intent_entities, tuple):
                     request.intent, request.entities = intent_entities
                 else:
@@ -117,23 +117,23 @@ class BotBase(ABC):
                 message_log.entities = request.entities
 
                 # route to skill
-                skill = self.route(request, user, context)
+                skill = self.route(request, user, state)
                 if skill is None:
                     self.logger.info("No skill found")
                     continue
 
                 # execute skill
-                response = skill.process_request(request, user, context)
+                response = skill.process_request(request, user, state)
                 if not isinstance(response, self.response_class):
                     response = self.response_class(response)
                 message_log.response = response
 
                 # process response
-                self.process_response(request, user, context, response)
+                self.process_response(request, user, state, response)
 
-                # clear context
+                # clear state
                 if response.end_session:
-                    context.clear()
+                    state.clear()
 
             except Exception as ex:
                 self.logger.error(
@@ -143,16 +143,16 @@ class BotBase(ABC):
                 message_log.error = json.dumps(
                     {"message": str(ex), "trace": traceback.format_exc()}
                 )
-                if context:
-                    # clear context on error
-                    context.clear()
+                if state:
+                    # clear state on error
+                    state.clear()
 
             finally:
                 try:
-                    # serialize context and user to save in database
-                    if context is not None:
-                        context.serialize_data()
-                        message_log.context_on_end = context
+                    # serialize state and user to save in database
+                    if state is not None:
+                        state.serialize_data()
+                        message_log.state_on_end = state
                     if user is not None:
                         user.serialize_data()
                         message_log.user_on_end = user

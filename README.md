@@ -8,7 +8,7 @@ A template to build LINE Bot extremely fast🚀
 
 This is a tiny LINE Bot project template with these features below:
 
-- Multi-skills and Multi-turns support (Context based routing)
+- Multi-skills and Multi-turns support (State based routing)
 - Scalable (Very essential)
 - Continuous improvement support (Message logs)
 
@@ -64,10 +64,10 @@ Before start building you may want to know the architecture of this template, es
 
 In short, just implementing `YourBot.extract_intent` and `YourSkill(s).process_request` are needed to create your chatbot. Any other common features are ready as out of the box.
 
-- `extract_intent` takes `Request`, `User` and `Context`. You can get `Event` object from LINE API as `request.event`. Return intent as `str` and entities as `dict` if they are extracted.
+- `extract_intent` takes `Request`, `User` and `State`. You can get `Event` object from LINE API as `request.event`. Return intent as `str` and entities as `dict` if they are extracted.
 
 ```python
-def extract_intent(self, request, user, context):
+def extract_intent(self, request, user, state):
     if request.event.messages == "***":
         # intent and entities are extracted
         return "***", {"key1": "val1", "key2", "val2"}
@@ -76,14 +76,14 @@ def extract_intent(self, request, user, context):
         return "***"
 ```
 
-- `process_request` also takes `Request`, `User` and `Context`. Process business logic, compose list of `Message` object to LINE API and return `Response` object with these messages. You can also return:
+- `process_request` also takes `Request`, `User` and `State`. Process business logic, compose list of `Message` object to LINE API and return `Response` object with these messages. You can also return:
     - `str`
     - `Message`
     - `list` of `str`
     - `list` of `Message` and `str`
 
 ```python
-def process_request(self, request, user, context):
+def process_request(self, request, user, state):
     text = do_something()
     message = TextSendMessage(text=text)
     return Response(messages=[message])
@@ -107,7 +107,7 @@ class EchoSkill(SkillBase):
     # configure topic name of this skill
     topic = "Echo"
 
-    def process_request(self, request, user, context):
+    def process_request(self, request, user, state):
         # return what user said
         return request.event.message.text
 
@@ -115,14 +115,14 @@ class EchoBot(LineBotBase):
     # register skills that will be used in this bot
     skills = [EchoSkill]
 
-    def extract_intent(self, request, user, context):
+    def extract_intent(self, request, user, state):
         # trigger EchoSkill everytime
         return EchoSkill.topic
 ```
 
 ## Multi-turn echo bot
 
-If you want to continue topic and keep context next turn, set `end_session=False` to the response from your skill. This is the example of multi-turn echo, that shows current input and last input.
+If you want to continue topic and keep state next turn, set `end_session=False` to the response from your skill. This is the example of multi-turn echo, that shows current input and last input.
 
 ```python
 from avril import SkillBase
@@ -131,10 +131,10 @@ from avril.channels.line import LineBotBase, LineResponse
 class MultiTurnEchoSkill(SkillBase):
     topic = "MultiTurnEcho"
 
-    def process_request(self, request, user, context):
+    def process_request(self, request, user, state):
         current_text = request.event.message.text
-        last_text = context.data.get("last_text")
-        context.data["last_text"] = current_text
+        last_text = state.data.get("last_text")
+        state.data["last_text"] = current_text
 
         message = f"Current input: {current_text}"
         if last_text:
@@ -142,14 +142,14 @@ class MultiTurnEchoSkill(SkillBase):
 
         return LineResponse(
             messages=message,
-            end_session=False   # 👈 Add param not to clear context after this turn
+            end_session=False   # 👈 Add param not to clear state after this turn
         )
 
 class MultiTurnEchoBot(LineBotBase):
     skills = [MultiTurnEchoSkill]
 
-    def extract_intent(self, request, user, context):
-        if not context.topic:   # 👈 Add condition not to trigger topic newly when the context is alive
+    def extract_intent(self, request, user, state):
+        if not state.topic:   # 👈 Add condition not to trigger topic newly when the state is alive
             return MultiTurnEchoSkill.topic
 ```
 
@@ -163,9 +163,9 @@ class MultiTurnEchoBot(LineBotBase):
 📝🤔
 
 
-# Lifecycle of context
+# Lifecycle of state
 
-Context is always cleared every turn by default but is kept as long as `end_session=False` is set to Response in your skill.
+State is always cleared every turn by default but is kept as long as `end_session=False` is set to Response in your skill.
 
 It will be cleared when:
 
@@ -182,13 +182,13 @@ In case you don't want to save some data in message log for performance or secur
 ```python
 class MyMessageLog(MessageLog):
     @property
-    def context_on_start(self):
-        super().context_on_start()
+    def state_on_start(self):
+        super().state_on_start()
 
     # override not to set serialized value
-    @context_on_start.setter
-    def context_on_start(self, value):
-        self.__context_on_start = None
+    @state_on_start.setter
+    def state_on_start(self, value):
+        self.__state_on_start = None
 
 class MyBot(LineBotBase):
     # Use custom message log class

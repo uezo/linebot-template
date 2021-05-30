@@ -39,7 +39,7 @@ def bot():
         line_parser=None,
         db_session_maker=Database(
             config["DATABASE"]["connection_string"]).session,
-        context_timeout=5
+        state_timeout=5
     )
 
     return bot
@@ -48,14 +48,14 @@ def bot():
 class EchoSkill(SkillBase):
     topic = "Echo"
 
-    def process_request(self, request, user, context):
+    def process_request(self, request, user, state):
         return "You said " + request.event.message.text
 
 
 class BotForTest(LineBotBase):
     skills = [EchoSkill]
 
-    def extract_intent(self, request, user, context):
+    def extract_intent(self, request, user, state):
         return EchoSkill.topic, {}
 
 
