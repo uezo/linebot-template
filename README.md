@@ -47,7 +47,7 @@ $ ngrok http 12345
 
 (conversation image)
 
-I have one more thing to introduce to you. Access http://localhost:12345/admin/messagelog . You can see the conversation histories on your browser. This is a very powerful tool that helps you to monitor your chatbot is working as you expected and to debug with rich information.
+I have one more thing to introduce to you. Access http://localhost:12345/admin/history . You can see the conversation histories on your browser. This is a very powerful tool that helps you to monitor your chatbot is working as you expected and to debug with rich information.
 
 (image)
 
@@ -175,12 +175,12 @@ It will be cleared when:
 - Exception is caught in `BotBase.process_events`
 
 
-# Mute MessageLog
+# Mute ConversationHistory
 
-In case you don't want to save some data in message log for performance or security reasons, you can mute specific columns by using your own MessageLog class.
+In case you don't want to save some data in message log for performance or security reasons, you can mute specific columns by using your own ConversationHistory class.
 
 ```python
-class MyMessageLog(MessageLog):
+class MyConversationHistory(ConversationHistory):
     @property
     def state_on_start(self):
         super().state_on_start()
@@ -192,7 +192,7 @@ class MyMessageLog(MessageLog):
 
 class MyBot(LineBotBase):
     # Use custom message log class
-    message_log_class = MyMessageLog
+    conversation_history_class = MyConversationHistory
         : (省略)
 ```
 

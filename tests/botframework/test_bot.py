@@ -6,7 +6,7 @@ import pytest
 from sqlalchemy import desc
 from avril import BotBase, SkillBase
 from avril.models import (
-    State, MessageLog, Request, Response, create_all
+    State, ConversationHistory, Request, Response, create_all
 )
 from database import Database
 
@@ -130,12 +130,12 @@ class TestBotBase:
         finally:
             db.close()
 
-    def get_last_messagelog(self, bot, source_id):
+    def get_last_history(self, bot, source_id):
         db = bot.db_session()
         try:
-            return db.query(MessageLog).\
-                filter(MessageLog.source_id == source_id).\
-                order_by(desc(MessageLog.updated_at)).first()
+            return db.query(ConversationHistory).\
+                filter(ConversationHistory.source_id == source_id).\
+                order_by(desc(ConversationHistory.updated_at)).first()
         finally:
             db.close()
 
@@ -306,8 +306,8 @@ class TestBotBase:
         state = self.get_state(bot, user_id)
         assert state.topic == ErrorCaseSkill.topic
         assert state.data["state_status"] == "valid"
-        message_log = self.get_last_messagelog(bot, user_id)
-        assert message_log.error is None
+        conversation_history = self.get_last_history(bot, user_id)
+        assert conversation_history.error is None
 
         # error in skill
         bot.response_buffer.clear()
@@ -319,8 +319,8 @@ class TestBotBase:
         state = self.get_state(bot, user_id)
         assert state.topic is None
         assert state.data == {}
-        message_log = self.get_last_messagelog(bot, user_id)
-        assert json.loads(message_log.error)["message"] == "Error in skill"
+        conversation_history = self.get_last_history(bot, user_id)
+        assert json.loads(conversation_history.error)["message"] == "Error in skill"
 
         # no error occures (again)
         bot.response_buffer.clear()
@@ -333,8 +333,8 @@ class TestBotBase:
         state = self.get_state(bot, user_id)
         assert state.topic == ErrorCaseSkill.topic
         assert state.data["state_status"] == "valid"
-        message_log = self.get_last_messagelog(bot, user_id)
-        assert message_log.error is None
+        conversation_history = self.get_last_history(bot, user_id)
+        assert conversation_history.error is None
 
         # error in process_response
         bot.process_response = None     # make process_response not callable
@@ -347,8 +347,8 @@ class TestBotBase:
         state = self.get_state(bot, user_id)
         assert state.topic is None
         assert state.data == {}
-        message_log = self.get_last_messagelog(bot, user_id)
-        assert json.loads(message_log.error)["message"] ==\
+        conversation_history = self.get_last_history(bot, user_id)
+        assert json.loads(conversation_history.error)["message"] ==\
             "'NoneType' object is not callable"
 
     def test_process_events_multiturn(self, bot):
@@ -422,7 +422,7 @@ class TestBotBase:
         }])
         assert len(bot.response_buffer) == 7
 
-    def test_process_events_messagelog(self, bot):
+    def test_process_events_history(self, bot):
         user_id = str(uuid4())
         messages = [
             "multi_turn",
@@ -445,11 +445,11 @@ class TestBotBase:
 
         db = bot.db_session()
         try:
-            message_logs = db.query(MessageLog).\
-                filter(MessageLog.source_id == user_id).\
-                order_by(MessageLog.updated_at).all()
+            conversation_histories = db.query(ConversationHistory).\
+                filter(ConversationHistory.source_id == user_id).\
+                order_by(ConversationHistory.updated_at).all()
 
-            for i, ml in enumerate(message_logs):
+            for i, ml in enumerate(conversation_histories):
                 assert ml.request["event"]["text"] == messages[i]
                 state_on_start = json.loads(ml.state_on_start)["data"]
                 state_on_end = json.loads(ml.state_on_end)["data"]
@@ -503,8 +503,8 @@ class TestBotBase:
         finally:
             db.close()
 
-    def test_process_events_custom_messagelog(self, bot):
-        class MyMessageLog(MessageLog):
+    def test_process_events_custom_history(self, bot):
+        class MyConversationHistory(ConversationHistory):
             @property
             def state_on_start(self):
                 super().state_on_start()
@@ -518,20 +518,20 @@ class TestBotBase:
         db = bot.db_session()
         try:
             bot.process_events([{"text": "ml test", "source_id": user_id}])
-            message_log = db.query(MessageLog).\
-                filter(MessageLog.source_id == user_id).\
-                order_by(desc(MessageLog.updated_at)).first()
+            conversation_history = db.query(ConversationHistory).\
+                filter(ConversationHistory.source_id == user_id).\
+                order_by(desc(ConversationHistory.updated_at)).first()
             # confirm that state_on_start is saved
-            assert json.loads(message_log.state_on_start)["id"] == user_id
+            assert json.loads(conversation_history.state_on_start)["id"] == user_id
 
             # change message log class to mute state_on_start
-            bot.message_log_class = MyMessageLog
+            bot.conversation_history_class = MyConversationHistory
             bot.process_events([{"text": "ml test", "source_id": user_id}])
-            my_message_log = db.query(MessageLog).\
-                filter(MessageLog.source_id == user_id).\
-                order_by(desc(MessageLog.updated_at)).first()
+            my_conversation_history = db.query(ConversationHistory).\
+                filter(ConversationHistory.source_id == user_id).\
+                order_by(desc(ConversationHistory.updated_at)).first()
             # confirm that state_on_start is not saved
-            assert my_message_log.state_on_start is None
+            assert my_conversation_history.state_on_start is None
 
         finally:
             db.close()

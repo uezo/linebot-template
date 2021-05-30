@@ -3,9 +3,9 @@ from datetime import datetime
 import json
 from flask import Blueprint, current_app, request, render_template
 from sqlalchemy import desc
-from ..models import MessageLog
+from ..models import ConversationHistory
 
-bp = Blueprint("message_log", __name__, template_folder="../templates")
+bp = Blueprint("conversation_history", __name__, template_folder="../templates")
 
 
 @bp.app_template_filter("timestamp_to_str")
@@ -27,8 +27,8 @@ def format_json(val):
         return json.dumps(json.loads(val), ensure_ascii=False, indent=2)
 
 
-@bp.route("/admin/messagelog")
-def message_log_index():
+@bp.route("/admin/history")
+def conversation_history_index():
     db = current_app.bot.db_session()
 
     try:
@@ -38,14 +38,14 @@ def message_log_index():
         offset = int(request.args.get("offset", 0))
         if offset < 0:
             offset = 0
-        message_logs = db.query(MessageLog).\
-            order_by(desc(MessageLog.updated_at)).\
+        conversation_histories = db.query(ConversationHistory).\
+            order_by(desc(ConversationHistory.updated_at)).\
             limit(count).offset(offset).all()
 
         return render_template(
-            "message_log.html",
+            "history.html",
             data={
-                "message_logs": message_logs,
+                "conversation_histories": conversation_histories,
                 "count": count,
                 "offset": offset
             }
@@ -53,27 +53,27 @@ def message_log_index():
 
     except Exception as ex:
         current_app.bot.logger.error(
-            f"Error in getting index of message log: \
-            {str(ex)}\n{traceback.format_exc()}"
+            "Error in getting index of message log: "
+            + f"{str(ex)}\n{traceback.format_exc()}"
         )
 
     finally:
         db.close()
 
 
-@bp.route("/admin/messagelog/<messagelog_id>")
-def message_log_detail(messagelog_id):
+@bp.route("/admin/history/<history_id>")
+def conversation_history_detail(history_id):
     db = current_app.bot.db_session()
 
     try:
-        message_log = db.query(MessageLog).\
-            filter(MessageLog.id == messagelog_id).first()
+        conversation_history = db.query(ConversationHistory).\
+            filter(ConversationHistory.id == history_id).first()
 
-        if message_log:
+        if conversation_history:
             return render_template(
-                "message_log_detail.html",
+                "history_detail.html",
                 data={
-                    "ml": message_log
+                    "ml": conversation_history
                 }
             )
 
@@ -82,8 +82,8 @@ def message_log_detail(messagelog_id):
 
     except Exception as ex:
         current_app.bot.logger.error(
-            f"Error in getting detail of message log: \
-            {str(ex)}\n{traceback.format_exc()}"
+            "Error in getting detail of message log: "
+            + f"{str(ex)}\n{traceback.format_exc()}"
         )
 
     finally:

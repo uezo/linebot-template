@@ -3,7 +3,7 @@ from flask import Flask, request
 from linebot import LineBotApi, WebhookParser
 from database import Database
 from avril.models import create_all
-from avril.controllers import message_log_bp
+from avril.controllers import conversation_history_bp
 from examples.echo import EchoBot, MultiTurnEchoBot
 
 # load config
@@ -19,7 +19,7 @@ app.bot = EchoBot(
     line_api=LineBotApi(config["LINE_API"]["channel_access_token"]),
     line_parser=WebhookParser(config["LINE_API"]["channel_secret"]),
     db_session_maker=db.session, logger=app.logger)
-app.register_blueprint(message_log_bp)
+app.register_blueprint(conversation_history_bp)
 
 
 @app.route("/bot/webhook_handler", methods=["POST"])

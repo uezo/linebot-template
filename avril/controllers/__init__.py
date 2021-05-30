@@ -1,1 +1,1 @@
-from .messagelog import bp as message_log_bp
+from .history import bp as conversation_history_bp

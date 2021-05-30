@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import uuid4
 import json
-from avril.models import State, User, Request, Response, MessageLog
+from avril.models import State, User, Request, Response, ConversationHistory
 
 
 class TestState:
@@ -238,24 +238,24 @@ class TestResponse:
         assert d["end_session"] == response.end_session
 
 
-class TestMessageLog:
+class TestConversationHistory:
     def test_init(self):
-        message_log = MessageLog()
-        assert message_log.id is None
-        assert message_log.updated_at is None
-        assert message_log.response_time is None
-        assert message_log.error is None
+        conversation_history = ConversationHistory()
+        assert conversation_history.id is None
+        assert conversation_history.updated_at is None
+        assert conversation_history.response_time is None
+        assert conversation_history.error is None
 
         # properties
-        assert message_log.request is None
-        assert message_log.response is None
-        assert message_log.state_on_start is None
-        assert message_log.state_on_end is None
-        assert message_log.user_on_start is None
-        assert message_log.user_on_end is None
+        assert conversation_history.request is None
+        assert conversation_history.response is None
+        assert conversation_history.state_on_start is None
+        assert conversation_history.state_on_end is None
+        assert conversation_history.user_on_start is None
+        assert conversation_history.user_on_end is None
 
     def test_getter_setters(self):
-        message_log = MessageLog()
+        conversation_history = ConversationHistory()
 
         request = Request(
             event={"key1": "value1"},
@@ -265,44 +265,44 @@ class TestMessageLog:
             intent="weather",
             entities={"location": "tokyo"}
         )
-        message_log.request = request
-        assert message_log.request["event"] == request.event
-        assert message_log.source_id == request.source_id
+        conversation_history.request = request
+        assert conversation_history.request["event"] == request.event
+        assert conversation_history.source_id == request.source_id
 
-        message_log.intent = request.intent
-        message_log.entities = request.entities
-        assert message_log.intent == request.intent
-        assert message_log.entities == json.dumps(request.entities)
+        conversation_history.intent = request.intent
+        conversation_history.entities = request.entities
+        assert conversation_history.intent == request.intent
+        assert conversation_history.entities == json.dumps(request.entities)
 
         response = Response(
             messages=["message_1", "message_2"],
             end_session=False
         )
-        message_log.response = response
-        assert message_log.response["messages"] == response.messages
-        assert message_log.response["end_session"] == response.end_session
+        conversation_history.response = response
+        assert conversation_history.response["messages"] == response.messages
+        assert conversation_history.response["end_session"] == response.end_session
 
         # create state
         state = State(
             id=str(uuid4()),
             data={"key1": "value1", "key2": "value2"}
         )
-        message_log.state_on_start = state
-        assert isinstance(message_log.state_on_start, str)
-        d = json.loads(message_log.state_on_start)
+        conversation_history.state_on_start = state
+        assert isinstance(conversation_history.state_on_start, str)
+        d = json.loads(conversation_history.state_on_start)
         assert d["id"] == state.id
         assert d["data"] == state.data
 
         # update state and set on_end
         state.data["key1"] = "value1 update"
         state.data["key3"] = "value3"
-        message_log.state_on_end = state
+        conversation_history.state_on_end = state
 
         # confirm on_start is not updated and on_end is updated
-        d_start = json.loads(message_log.state_on_start)
+        d_start = json.loads(conversation_history.state_on_start)
         assert d_start["id"] == state.id
         assert d_start["data"] == {"key1": "value1", "key2": "value2"}
-        d_end = json.loads(message_log.state_on_end)
+        d_end = json.loads(conversation_history.state_on_end)
         assert d_end["id"] == state.id
         assert d_end["data"] == {
             "key1": "value1 update", "key2": "value2", "key3": "value3"
@@ -313,28 +313,28 @@ class TestMessageLog:
             id=str(uuid4()),
             data={"key1": "value1", "key2": "value2"}
         )
-        message_log.user_on_start = user
-        assert isinstance(message_log.user_on_start, str)
-        d = json.loads(message_log.user_on_start)
+        conversation_history.user_on_start = user
+        assert isinstance(conversation_history.user_on_start, str)
+        d = json.loads(conversation_history.user_on_start)
         assert d["id"] == user.id
         assert d["data"] == user.data
 
         # update state and set on_end
         user.data["key1"] = "value1 update"
         user.data["key3"] = "value3"
-        message_log.user_on_end = user
+        conversation_history.user_on_end = user
 
         # confirm on_start is not updated and on_end is updated
-        d_start = json.loads(message_log.user_on_start)
+        d_start = json.loads(conversation_history.user_on_start)
         assert d_start["id"] == user.id
         assert d_start["data"] == {"key1": "value1", "key2": "value2"}
-        d_end = json.loads(message_log.user_on_end)
+        d_end = json.loads(conversation_history.user_on_end)
         assert d_end["id"] == user.id
         assert d_end["data"] == {
             "key1": "value1 update", "key2": "value2", "key3": "value3"
         }
 
-        assert isinstance(message_log.user_on_start_as_dict, dict)
-        assert message_log.user_on_start_as_dict ==\
-            json.loads(message_log.user_on_start)
-        assert MessageLog().user_on_start_as_dict is None
+        assert isinstance(conversation_history.user_on_start_as_dict, dict)
+        assert conversation_history.user_on_start_as_dict ==\
+            json.loads(conversation_history.user_on_start)
+        assert ConversationHistory().user_on_start_as_dict is None

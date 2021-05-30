@@ -47,7 +47,7 @@ $ ngrok http 12345
 
 (conversation image)
 
-さて、もう一つだけご紹介したい機能があります。http://localhost:12345/admin/messagelog にアクセスしてみてください。ユーザーとチャットボットとの会話の記録がブラウザで閲覧できるはずです。チャットボットが想定通りのシナリオで会話を進められているかのモニタリングや、豊富なデバッグ情報を利用した不具合対応など、なかなか強力なお役立ちツールとしてご活用頂けると思います。
+さて、もう一つだけご紹介したい機能があります。http://localhost:12345/admin/history にアクセスしてみてください。ユーザーとチャットボットとの会話の記録がブラウザで閲覧できるはずです。チャットボットが想定通りのシナリオで会話を進められているかのモニタリングや、豊富なデバッグ情報を利用した不具合対応など、なかなか強力なお役立ちツールとしてご活用頂けると思います。
 
 (image)
 
@@ -178,10 +178,10 @@ class MultiTurnEchoBot(LineBotBase):
 
 # メッセージログのミュート
 
-本番運用では、パフォーマンス上の理由や情報管理上の理由によりメッセージログをミュートしたくなる場合があります。そのような場合には`MessageLog`クラスを継承したクラスを作成して値を保持しないように修正します。これをBotの`message_log_class`に設定することで、当該項目の出力を抑止することができます。
+本番運用では、パフォーマンス上の理由や情報管理上の理由によりメッセージログをミュートしたくなる場合があります。そのような場合には`ConversationHistory`クラスを継承したクラスを作成して値を保持しないように修正します。これをBotの`conversation_history_class`に設定することで、当該項目の出力を抑止することができます。
 
 ```python
-class MyMessageLog(MessageLog):
+class MyConversationHistory(ConversationHistory):
     @property
     def state_on_start(self):
         super().state_on_start()
@@ -193,7 +193,7 @@ class MyMessageLog(MessageLog):
 
 class MyBot(LineBotBase):
     # Use custom message log class
-    message_log_class = MyMessageLog
+    conversation_history_class = MyConversationHistory
         : (省略)
 ```
 

@@ -5,14 +5,14 @@ import json
 from logging import getLogger
 from time import time
 import traceback
-from .models import State, MessageLog, User, Request, Response
+from .models import State, ConversationHistory, User, Request, Response
 
 
 class BotBase(ABC):
     skills = []
     request_class = Request
     response_class = Response
-    message_log_class = MessageLog
+    conversation_history_class = ConversationHistory
 
     def __init__(self, *, db_session_maker=None, logger=None,
                  threads=None, state_timeout=300):
@@ -89,22 +89,22 @@ class BotBase(ABC):
 
         for event in events:
             start_time = time()
-            message_log = self.message_log_class()
+            conversation_history = self.conversation_history_class()
             state = None
             user = None
 
             try:
                 # parse event to request
                 request = self.request_class.from_event(event)
-                message_log.request = request
+                conversation_history.request = request
 
                 # get state
                 state = self.get_state(db, request)
-                message_log.state_on_start = state
+                conversation_history.state_on_start = state
 
                 # get user
                 user = self.get_user(db, request)
-                message_log.user_on_start = user
+                conversation_history.user_on_start = user
 
                 # extract intent
                 intent_entities = self.extract_intent(request, user, state)
@@ -113,8 +113,8 @@ class BotBase(ABC):
                 else:
                     request.intent = intent_entities
                     request.entities = {}
-                message_log.intent = request.intent
-                message_log.entities = request.entities
+                conversation_history.intent = request.intent
+                conversation_history.entities = request.entities
 
                 # route to skill
                 skill = self.route(request, user, state)
@@ -126,7 +126,7 @@ class BotBase(ABC):
                 response = skill.process_request(request, user, state)
                 if not isinstance(response, self.response_class):
                     response = self.response_class(response)
-                message_log.response = response
+                conversation_history.response = response
 
                 # process response
                 self.process_response(request, user, state, response)
@@ -140,7 +140,7 @@ class BotBase(ABC):
                     "Error in processing event: "
                     + f"{str(ex)}\n{traceback.format_exc()}"
                 )
-                message_log.error = json.dumps(
+                conversation_history.error = json.dumps(
                     {"message": str(ex), "trace": traceback.format_exc()}
                 )
                 if state:
@@ -152,15 +152,15 @@ class BotBase(ABC):
                     # serialize state and user to save in database
                     if state is not None:
                         state.serialize_data()
-                        message_log.state_on_end = state
+                        conversation_history.state_on_end = state
                     if user is not None:
                         user.serialize_data()
-                        message_log.user_on_end = user
+                        conversation_history.user_on_end = user
 
                     # message log
-                    message_log.response_time =\
+                    conversation_history.response_time =\
                         int((time() - start_time) * 1000)
-                    db.add(message_log)
+                    db.add(conversation_history)
 
                     db.commit()
 

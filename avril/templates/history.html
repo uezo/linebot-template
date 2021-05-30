@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
         <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.15.2/css/all.css" integrity="sha384-yJpxAFV0Ip/w63YkZfDWDTU6re/Oc3ZiVqMa97pi8uPt92y0wzeK3UFM2yQRhEom" crossorigin="anonymous">
-        <title>メッセージログ一覧</title>
+        <title>会話の履歴</title>
         <style>
             body {
                 background-color: #eeeeee;
@@ -44,8 +44,8 @@
     </head>
     <body>
         <div class="container">
-            <h1>メッセージログ一覧</h1>
-            {% for ml in data.message_logs %}
+            <h1>会話の履歴</h1>
+            {% for ml in data.conversation_histories %}
             <div class="container">
                 <div class="row balloon-row">
                     <div class="col user-balloon-icon">
@@ -61,7 +61,7 @@
                         {% endif %}
                         <div class="balloon-box">
                             <p>{{ml.request.event.message.text}}</p>
-                            <span class="timestamp"><a href="messagelog/{{ml.id}}">{{ml.request.timestamp|timestamp_to_str}}</a>&nbsp;({{ml.response_time}}ms)</span>
+                            <span class="timestamp"><a href="history/{{ml.id}}">{{ml.request.timestamp|timestamp_to_str}}</a>&nbsp;({{ml.response_time}}ms)</span>
                         </div>
                     </div>
                     <div class="col user-balloon-spacer"></div>

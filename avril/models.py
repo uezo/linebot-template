@@ -163,8 +163,8 @@ class Response:
         return json.dumps(self.to_dict())
 
 
-class MessageLog(Base):
-    __tablename__ = "messagelogs"
+class ConversationHistory(Base):
+    __tablename__ = "conversation_histories"
     id = Column("id", NVARCHAR(255), default=get_uuid, primary_key=True)
     updated_at = Column("updated_at", DateTime, default=datetime.utcnow,
                         onupdate=datetime.utcnow, index=True)
