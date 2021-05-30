@@ -85,7 +85,7 @@ class BotBase(ABC):
                 "Error in connecting to database: "
                 + f"{str(ex)}\n{traceback.format_exc()}"
             )
-            return
+            raise ex
 
         for event in events:
             start_time = time()
