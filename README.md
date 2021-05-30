@@ -10,7 +10,7 @@ This is a tiny LINE Bot project template with these features below:
 
 - Multi-skills and Multi-turns support (State based routing)
 - Scalable (Very essential)
-- Continuous improvement support (Message logs)
+- Continuous improvement support (Conversation history)
 
 # Quick Start
 
@@ -177,7 +177,16 @@ It will be cleared when:
 
 # Mute ConversationHistory
 
-In case you don't want to save some data in message log for performance or security reasons, you can mute specific columns by using your own ConversationHistory class.
+In case you don't want to save some data in conversation history for performance or security reasons, you can avoid saving some columns or whole record by setting `history_verbosity` to your bot.
+
+```python
+# HistoryVerbosity.All: All information will be recorded (Default)
+# HistoryVerbosity.RequestAndResponse: State and User will not be recorded
+# HistoryVerbosity.Nothing: Nothing to be recorded
+bot = MyBot(history_verbosity=HistoryVerbosity.RequestAndResponse)
+```
+
+Or, you can also mute specific columns by using your own ConversationHistory class.
 
 ```python
 class MyConversationHistory(ConversationHistory):
@@ -191,7 +200,7 @@ class MyConversationHistory(ConversationHistory):
         self.__state_on_start = None
 
 class MyBot(LineBotBase):
-    # Use custom message log class
+    # Use custom conversation history class
     conversation_history_class = MyConversationHistory
         : (省略)
 ```

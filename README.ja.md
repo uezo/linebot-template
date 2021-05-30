@@ -10,7 +10,7 @@ LINE Botを超高速開発するためのテンプレート🚀
 
 - マルチスキル・マルチターンに対応（文脈ベースのルーティング）
 - スケーラブル（最低限の超基本的な部分のみ）
-- 継続的改善の支援（メッセージログ）
+- 継続的改善の支援（会話履歴）
 
 # クイックスタート
 
@@ -51,7 +51,7 @@ $ ngrok http 12345
 
 (image)
 
-タイムスタンプをクリックするとイベント処理前後のコンテキストや例外などより詳細な情報を確認することができます。
+タイムスタンプをクリックするとイベント処理前後のステートや例外などより詳細な情報を確認することができます。
 
 (image)
 
@@ -124,7 +124,7 @@ class EchoBot(LineBotBase):
 
 ## マルチターンのおうむ返しBot
 
-あるトピックを複数ターンに渡って継続し、またコンテキスト情報を維持するためには、スキルからのレスポンスに`end_session=False`を設定します。これは今回の発話内容と前回の発話内容をあわせて表示するマルチターンなおうむ返しBotの例です。
+あるトピックを複数ターンに渡って継続し、またステート情報を維持するためには、スキルからのレスポンスに`end_session=False`を設定します。これは今回の発話内容と前回の発話内容をあわせて表示するマルチターンなおうむ返しBotの例です。
 
 ```python
 from avril import SkillBase
@@ -144,7 +144,7 @@ class MultiTurnEchoSkill(SkillBase):
 
         return LineResponse(
             messages=message,
-            end_session=False   # 👈 コンテキスト情報を維持するためにセット
+            end_session=False   # 👈 ステート情報を維持するためにセット
         )
 
 class MultiTurnEchoBot(LineBotBase):
@@ -164,9 +164,9 @@ class MultiTurnEchoBot(LineBotBase):
 
 📝🤔
 
-# コンテキストのライフサイクル
+# ステートのライフサイクル
 
-コンテキスト情報はデフォルトでターン毎にクリアされますが、スキルのResponseに`end_session=False`をセットした場合にはクリアされずに次のターンまで保持されます。
+ステート情報はデフォルトでターン毎にクリアされますが、スキルのResponseに`end_session=False`をセットした場合にはクリアされずに次のターンまで保持されます。
 
 削除される条件は以下の通り:
 
@@ -176,9 +176,18 @@ class MultiTurnEchoBot(LineBotBase):
 - `BotBase.process_events`で例外がキャッチされたとき
 
 
-# メッセージログのミュート
+# 会話履歴のミュート
 
-本番運用では、パフォーマンス上の理由や情報管理上の理由によりメッセージログをミュートしたくなる場合があります。そのような場合には`ConversationHistory`クラスを継承したクラスを作成して値を保持しないように修正します。これをBotの`conversation_history_class`に設定することで、当該項目の出力を抑止することができます。
+本番運用では、パフォーマンス上の理由や情報管理上の理由により会話履歴をミュートしたくなる場合があります。そのような場合にはBotの`history_verbosity`に適切な詳細度を設定します。
+
+```python
+# HistoryVerbosity.All: すべて（デフォルト）
+# HistoryVerbosity.RequestAndResponse: StateとUserは保存されない
+# HistoryVerbosity.Nothing: 何も保存されない
+bot = MyBot(history_verbosity=HistoryVerbosity.RequestAndResponse)
+```
+
+また、`ConversationHistory`クラスを継承したクラスを作成して値を保持しないように修正し、これをBotの`conversation_history_class`に設定することでも当該項目の出力を抑止することができます。
 
 ```python
 class MyConversationHistory(ConversationHistory):
@@ -192,7 +201,7 @@ class MyConversationHistory(ConversationHistory):
         self.__state_on_start = None
 
 class MyBot(LineBotBase):
-    # Use custom message log class
+    # Use custom conversation history class
     conversation_history_class = MyConversationHistory
         : (省略)
 ```
