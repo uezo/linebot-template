@@ -6,7 +6,7 @@ import pytest
 from sqlalchemy import desc
 from avril import BotBase, SkillBase
 from avril.models import (
-    State, ConversationHistory, Request, Response, create_all
+    State, ConversationHistory, HistoryVerbosity, Request, Response, create_all
 )
 from database import Database
 
@@ -503,6 +503,58 @@ class TestBotBase:
         finally:
             db.close()
 
+    def test_process_events_history_reqresonly(self, bot):
+        user_id = str(uuid4())
+        db = bot.db_session()
+        try:
+            bot.process_events([{"text": "ml test", "source_id": user_id}])
+            conversation_history = db.query(ConversationHistory).\
+                filter(ConversationHistory.source_id == user_id).\
+                order_by(desc(ConversationHistory.updated_at)).first()
+            # confirm that state_on_start is saved
+            assert json.loads(conversation_history.state_on_start)["id"] == user_id
+
+            # change history verbosity to record only request/response
+            bot.history_verbosity = HistoryVerbosity.RequestAndResponse
+            bot.process_events([{"text": "ml test", "source_id": user_id}])
+            my_conversation_history = db.query(ConversationHistory).\
+                filter(ConversationHistory.source_id == user_id).\
+                order_by(desc(ConversationHistory.updated_at)).first()
+            # confirm that request is saved
+            assert my_conversation_history.request["event"]["text"] == "ml test"
+            # confirm that state and user are not saved
+            assert my_conversation_history.state_on_start is None
+            assert my_conversation_history.state_on_end is None
+            assert my_conversation_history.user_on_start is None
+            assert my_conversation_history.user_on_end is None
+
+        finally:
+            db.close()
+
+    def test_process_events_history_nothing(self, bot):
+        db = bot.db_session()
+        try:
+            user_id_all = str(uuid4())
+            bot.process_events([{"text": "ch test", "source_id": user_id_all}])
+            conversation_history = db.query(ConversationHistory).\
+                filter(ConversationHistory.source_id == user_id_all).\
+                order_by(desc(ConversationHistory.updated_at)).first()
+            # confirm that state_on_start is saved
+            assert json.loads(conversation_history.state_on_start)["id"] == user_id_all
+
+            # change conversation history class to record nothing
+            user_id_nothing = str(uuid4())
+            bot.history_verbosity = HistoryVerbosity.Nothing
+            bot.process_events([{"text": "ch test", "source_id": user_id_nothing}])
+            my_conversation_history = db.query(ConversationHistory).\
+                filter(ConversationHistory.source_id == user_id_nothing).\
+                order_by(desc(ConversationHistory.updated_at)).first()
+            # confirm that history is not recorded
+            assert my_conversation_history is None
+
+        finally:
+            db.close()
+
     def test_process_events_custom_history(self, bot):
         class MyConversationHistory(ConversationHistory):
             @property
@@ -532,6 +584,8 @@ class TestBotBase:
                 order_by(desc(ConversationHistory.updated_at)).first()
             # confirm that state_on_start is not saved
             assert my_conversation_history.state_on_start is None
+            # confirm that state_on_end is saved
+            assert json.loads(my_conversation_history.state_on_end)["id"] == user_id
 
         finally:
             db.close()

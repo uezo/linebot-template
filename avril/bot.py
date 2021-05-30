@@ -5,7 +5,10 @@ import json
 from logging import getLogger
 from time import time
 import traceback
-from .models import State, ConversationHistory, User, Request, Response
+from .models import (
+    State, User, Request, Response,
+    ConversationHistory, HistoryVerbosity,
+)
 
 
 class BotBase(ABC):
@@ -15,13 +18,15 @@ class BotBase(ABC):
     conversation_history_class = ConversationHistory
 
     def __init__(self, *, db_session_maker=None, logger=None,
-                 threads=None, state_timeout=300):
+                 threads=None, state_timeout=300,
+                 history_verbosity=HistoryVerbosity.All):
         self.db_session = db_session_maker
         self.logger = logger or getLogger(__name__)
         self.executor = ThreadPoolExecutor(
             max_workers=threads, thread_name_prefix="LineEvent"
         )
         self.state_timeout = state_timeout
+        self.history_verbosity = history_verbosity
         self.__skills = {s.topic: s for s in self.skills}
         if len(self.__skills) == 0:
             self.logger.warning("No skills has been registered yet.")
@@ -100,11 +105,15 @@ class BotBase(ABC):
 
                 # get state
                 state = self.get_state(db, request)
-                conversation_history.state_on_start = state
+                if self.history_verbosity > \
+                        HistoryVerbosity.RequestAndResponse:
+                    conversation_history.state_on_start = state
 
                 # get user
                 user = self.get_user(db, request)
-                conversation_history.user_on_start = user
+                if self.history_verbosity > \
+                        HistoryVerbosity.RequestAndResponse:
+                    conversation_history.user_on_start = user
 
                 # extract intent
                 intent_entities = self.extract_intent(request, user, state)
@@ -152,15 +161,20 @@ class BotBase(ABC):
                     # serialize state and user to save in database
                     if state is not None:
                         state.serialize_data()
-                        conversation_history.state_on_end = state
+                        if self.history_verbosity > \
+                                HistoryVerbosity.RequestAndResponse:
+                            conversation_history.state_on_end = state
                     if user is not None:
                         user.serialize_data()
-                        conversation_history.user_on_end = user
+                        if self.history_verbosity > \
+                                HistoryVerbosity.RequestAndResponse:
+                            conversation_history.user_on_end = user
 
-                    # message log
+                    # conversation history
                     conversation_history.response_time =\
                         int((time() - start_time) * 1000)
-                    db.add(conversation_history)
+                    if self.history_verbosity > HistoryVerbosity.Nothing:
+                        db.add(conversation_history)
 
                     db.commit()
 

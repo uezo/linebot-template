@@ -163,6 +163,12 @@ class Response:
         return json.dumps(self.to_dict())
 
 
+class HistoryVerbosity:
+    All = 99
+    RequestAndResponse = 1
+    Nothing = 0
+
+
 class ConversationHistory(Base):
     __tablename__ = "conversation_histories"
     id = Column("id", NVARCHAR(255), default=get_uuid, primary_key=True)
