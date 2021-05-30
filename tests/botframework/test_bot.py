@@ -4,8 +4,8 @@ from uuid import uuid4
 import json
 import pytest
 from sqlalchemy import desc
-from botframework import BotBase, SkillBase
-from botframework.models import (
+from avril import BotBase, SkillBase
+from avril.models import (
     Context, MessageLog, Request, Response, create_all
 )
 from database import Database

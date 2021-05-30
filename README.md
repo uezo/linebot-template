@@ -100,8 +100,8 @@ def process_request(self, request, user, context):
 This is the simplest example for the bot that has only EchoSkill.
 
 ```python
-from botframework import SkillBase
-from botframework.channels.line import LineBotBase
+from avril import SkillBase
+from avril.channels.line import LineBotBase
 
 class EchoSkill(SkillBase):
     # configure topic name of this skill
@@ -125,8 +125,8 @@ class EchoBot(LineBotBase):
 If you want to continue topic and keep context next turn, set `end_session=False` to the response from your skill. This is the example of multi-turn echo, that shows current input and last input.
 
 ```python
-from botframework import SkillBase
-from botframework.channels.line import LineBotBase, LineResponse
+from avril import SkillBase
+from avril.channels.line import LineBotBase, LineResponse
 
 class MultiTurnEchoSkill(SkillBase):
     topic = "MultiTurnEcho"

@@ -1,5 +1,5 @@
-from botframework import SkillBase
-from botframework.channels.line import LineBotBase, LineResponse
+from avril import SkillBase
+from avril.channels.line import LineBotBase, LineResponse
 
 
 class EchoSkill(SkillBase):

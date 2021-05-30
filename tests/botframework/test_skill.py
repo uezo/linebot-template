@@ -1,5 +1,5 @@
 import pytest
-from botframework import SkillBase
+from avril import SkillBase
 
 
 class DummyBot:

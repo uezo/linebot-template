@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import uuid4
 import json
-from botframework.models import Context, User, Request, Response, MessageLog
+from avril.models import Context, User, Request, Response, MessageLog
 
 
 class TestContext:

@@ -5,9 +5,9 @@ from linebot import LineBotApi
 from linebot.exceptions import LineBotApiError
 from linebot.models import (MessageEvent, SourceGroup, SourceRoom, SourceUser,
                             TextMessage, TextSendMessage)
-from botframework import SkillBase
-from botframework.channels.line import LineBotBase, LineRequest, LineResponse
-from botframework.models import create_all
+from avril import SkillBase
+from avril.channels.line import LineBotBase, LineRequest, LineResponse
+from avril.models import create_all
 from database import Database
 
 # load config

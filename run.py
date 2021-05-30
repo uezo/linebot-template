@@ -2,8 +2,8 @@ from configparser import ConfigParser
 from flask import Flask, request
 from linebot import LineBotApi, WebhookParser
 from database import Database
-from botframework.models import create_all
-from botframework.controllers import message_log_bp
+from avril.models import create_all
+from avril.controllers import message_log_bp
 from examples.echo import EchoBot, MultiTurnEchoBot
 
 # load config

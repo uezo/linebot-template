@@ -100,8 +100,8 @@ def process_request(self, request, user, context):
 おうむ返しスキルのみを持つ最もシンプルなチャットボットの例です。
 
 ```python
-from botframework import SkillBase
-from botframework.channels.line import LineBotBase
+from avril import SkillBase
+from avril.channels.line import LineBotBase
 
 class EchoSkill(SkillBase):
     # このスキルのトピック名称
@@ -127,8 +127,8 @@ class EchoBot(LineBotBase):
 あるトピックを複数ターンに渡って継続し、またコンテキスト情報を維持するためには、スキルからのレスポンスに`end_session=False`を設定します。これは今回の発話内容と前回の発話内容をあわせて表示するマルチターンなおうむ返しBotの例です。
 
 ```python
-from botframework import SkillBase
-from botframework.channels.line import LineBotBase, LineResponse
+from avril import SkillBase
+from avril.channels.line import LineBotBase, LineResponse
 
 class MultiTurnEchoSkill(SkillBase):
     topic = "MultiTurnEcho"
