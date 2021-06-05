@@ -69,10 +69,9 @@ class BotBase(ABC):
 
     def route(self, request, user, state):
         if request.intent in self.__skills:
-            # set topic to start skill match to intent
-            skill = self.__skills[request.intent]
+            # clear state and set intent to topic to start skill
             state.clear()
-            state.topic = skill.topic
+            state.topic = request.intent
 
         if state.topic in self.__skills:
             # start or continue skill match to topic
