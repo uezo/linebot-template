@@ -1,7 +1,10 @@
 import traceback
 from datetime import datetime
 import json
-from flask import Blueprint, current_app, request, render_template
+from flask import (
+    Blueprint, Response,
+    current_app, request, render_template, abort
+)
 from sqlalchemy import desc
 from ..models import ConversationHistory
 
@@ -56,6 +59,7 @@ def conversation_history_index():
             "Error in getting index of message log: "
             + f"{str(ex)}\n{traceback.format_exc()}"
         )
+        abort(500)
 
     finally:
         db.close()
@@ -78,13 +82,15 @@ def conversation_history_detail(history_id):
             )
 
         else:
-            return "404"
+            # Use Response to avoid raising error
+            return Response("History not found", status=404)
 
     except Exception as ex:
         current_app.bot.logger.error(
             "Error in getting detail of message log: "
             + f"{str(ex)}\n{traceback.format_exc()}"
         )
+        abort(500)
 
     finally:
         db.close()
