@@ -60,7 +60,15 @@
                         </div>
                         {% endif %}
                         <div class="balloon-box">
+                            {% if ml.request.event.type == "message" %}
+                                {% if ml.request.event.message.type == "text" %}
                             <p>{{ml.request.event.message.text}}</p>
+                                {% else %}
+                            <p>({{ml.request.event.message.type}}メッセージ)</p>
+                                {% endif %}
+                            {% else %}
+                            <p>({{ml.request.event.type}}イベント)</p>
+                            {% endif %}
                             <span class="timestamp"><a href="history/{{ml.id}}">{{ml.request.timestamp|timestamp_to_str}}</a>&nbsp;({{ml.response_time}}ms)</span>
                         </div>
                     </div>
