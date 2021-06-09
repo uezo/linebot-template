@@ -7,8 +7,6 @@ from avril import SkillBase
 from avril.channels.line import LineResponse
 from ..crud import RemindRepository
 
-# 画像リマインド！おもしろい
-
 
 # リマインダー登録スキル
 class ReminderRegisterSkill(SkillBase):
